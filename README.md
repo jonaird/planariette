@@ -7,7 +7,7 @@
  
  ## Usage
 
-Planariette is a single function call that lets you syncronize with the blockchain then listens for new transactions.
+Planariette is a single function call that lets you syncronize with the blockchain then process new transactions in realtime.
 
 ### start(token, query, process, (optional) onSyncFinish);
 
