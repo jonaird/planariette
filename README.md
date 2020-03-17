@@ -1,5 +1,5 @@
-# planariette
- Planariette is a lightweight mini planaria for Nodejs.
+# Planariette
+ Planariette is a lightweight planaria for Nodejs.
  
  ## Install
  
