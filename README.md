@@ -12,7 +12,7 @@ Planariette is a single function call that lets you syncronize with the blockcha
 ### start(token, query, process, (optional) onSyncFinish);
 
 **token**: A Bitbus api token which you can get [here](https://token.planaria.network).  
-**query**: A [Bitquery]:(https://bitquery.planaria.network/#/?id=bitquery). "r" and BOB are not supported.   
+**query**: A [Bitquery]:(https://bitquery.planaria.network/#/?id=bitquery). "r" and BOB are not supported. If you are using "project" you must include "tx.h".   
 **process(tx, type)**: A processing function that processes each individual transaction in the order they appear on the blockchain. This function can be either synchronous or async but if async, be sure to return a promise that resolves when finished processing a transaction. Type is string either 'c','u', or 'r' for confirmed (mined), unconfirmed (mempool) or realtime transactions.   
 **onSyncFinish()**: A function that is called when Planariette has finished synching with the blockchain and starts listening for realtime transactions. It is not recommended to do heavy lifting in onSyncFinish unless it is done synchronously.
 
