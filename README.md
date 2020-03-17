@@ -9,7 +9,7 @@
 
 Planariette is a single function call that lets you syncronize with the blockchain then listens for new transactions.
 
-### start(token, query, process, onSyncFinish);
+### start(token, query, process, (optional) onSyncFinish);
 
 **token**: A Bitbus api token which you can get [here](https://token.planaria.network).  
 **query**: A [Bitquery]:(https://bitquery.planaria.network/#/?id=bitquery). "r" and BOB are not supported.   
