@@ -8,6 +8,9 @@ async function getUnconfirmed(query) {
     return new Promise(resolve => {
         var newQuery = Object.assign({}, query);
         newQuery.q.db = ["u"];
+        if(!newQuery.v){
+            newQuery.v=3;
+        }
         makeGenesisQuery(newQuery).then(res=>{
             resolve(res.u);
         })
@@ -69,7 +72,10 @@ exports.start = function (token, query, process, onSyncFinish) {
         while(!queue.isDrained()){
             await sleep(150);
         }
-        onSyncFinish();
+        if(onSyncFinish){
+            onSyncFinish();
+        }
+        
         type = 'r';
 
         bitsocket.connect(query,tx=>queue.enqueue(tx),lastEventId);
