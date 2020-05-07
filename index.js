@@ -1,91 +1,68 @@
 const bitbus = require('run-bitbus');
 const bitsocket = require('bitsocket-connect');
-const {SelfDrainingQueue, Queue, makeGenesisQuery, sleep } = require('./utils');
 
-
-
-async function getUnconfirmed(query) {
-    return new Promise(resolve => {
-        var newQuery = Object.assign({}, query);
-        newQuery.q.db = ["u"];
-        if(!newQuery.v){
-            newQuery.v=3;
-        }
-        makeGenesisQuery(newQuery).then(res=>{
-            resolve(res.u);
-        })
-
-    })
-
-
-}
-
-
+var socket;
 exports.start = function (token, query, process, onSyncFinish) {
     var type = 'c';
     var processFunc;
+    var last25h = [];
+    var now = new Date().getTime()
+    var hours25ago = now - 90000000
 
-    function processWithType(tx) {
-                process(tx, type)
+    if (query.q.project) {
+        query.q.project.blk = 1
+        query.q.project.tx = 1
     }
 
-     async function processWithTypeAsync(tx) {
+
+    function processWithType(tx) {
+        if (type == 'c' && tx.blk.t * 1000 > hours25ago) {
+            last25h.push(tx.tx.h)
+            process(tx,type)
+        } else if (type == 'u') {
+            if (!last25h.includes(tx.tx.h)) {
+                process(tx, type)
+            }
+        } else {
+            process(tx, type)
+        }
+    }
+
+    async function processWithTypeAsync(tx) {
         return new Promise(async resolve => {
-                process(tx, type).then(() => {
-                    resolve();
-                })
-           
+            if (type == 'c' && tx.blk.t * 1000 > hours25ago) {
+                last25h.push(tx.tx.h)
+                await process(tx,type)
+            } else if (type == 'u') {
+                if (!last25h.includes(tx.tx.h)) {
+                    await process(tx, type)
+                }
+            } else {
+                await process(tx, type)
+            }
+            resolve()
+
         })
     }
 
-    process.constructor.name == 'AsyncFunction'?processFunc=processWithTypeAsync:processFunc=processWithType;
-
-    async function callback() {
+    process.constructor.name == 'AsyncFunction' ? processFunc = processWithTypeAsync : processFunc = processWithType;
+  
+    bitbus.run(token, query, processFunc, ()=>{
         type = 'u';
 
-        var tempQueue = new Queue();
-        bitsocket.connect(query,tx=>tempQueue.enqueue(tx));
-        
-        var unconfirmed = await getUnconfirmed(query);
-        var latest = await bitsocket.getLatest();
-
-        var queue = new SelfDrainingQueue(processFunc);
-        
-
-        if(unconfirmed.length>0){
-            let i = 0;
-            while(i<unconfirmed.length&&latest.tx.h != unconfirmed[i].tx.h){
-                queue.enqueue(unconfirmed[i]);
-                i++
+        bitsocket.crawlRecent(token, query,processFunc, ()=>{
+            type='r'
+            if(onSyncFinish){
+                onSyncFinish()
             }
-            queue.enqueue(latest)
-        }
+            socket = bitsocket.connect(query, processFunc)
+        })
+    })
+}
 
-        
-
-       
-        while(tempQueue.getLength()>0){
-            queue.enqueue(tempQueue.dequeue());
-        }
-        
-        var lastEventId = bitsocket.close();
-        while(!queue.isDrained()){
-            await sleep(150);
-        }
-        if(onSyncFinish){
-            onSyncFinish();
-        }
-        
-        type = 'r';
-
-        bitsocket.connect(query,tx=>queue.enqueue(tx),lastEventId);
-       
-        
-        
-        
-
-
+exports.stop = function(){
+    if(socket){
+        socket.close()
+        socket=null
     }
-
-    bitbus.run(token, query, processFunc, callback)
 }
