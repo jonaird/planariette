@@ -1,8 +1,8 @@
 const bitbus = require('run-bitbus');
 const bitsocket = require('bitsocket-connect');
 
-var socket;
-exports.start = function (token, query, process, onSyncFinish) {
+
+function planarietteWithListenMode (token, query, process, onSyncFinish, listenMode) {
     var type = 'c';
     var processFunc;
     var last25h = [];
@@ -10,8 +10,8 @@ exports.start = function (token, query, process, onSyncFinish) {
     var hours25ago = now - 90000000
 
     if (query.q.project) {
-        query.q.project.blk = 1
-        query.q.project.tx = 1
+        query.q.project['blk'] = 1
+        query.q.project['tx.h'] = 1
     }
 
 
@@ -47,22 +47,38 @@ exports.start = function (token, query, process, onSyncFinish) {
 
     process.constructor.name == 'AsyncFunction' ? processFunc = processWithTypeAsync : processFunc = processWithType;
   
-    bitbus.run(token, query, processFunc, ()=>{
+    bitbus.run(token, query, processFunc).then(()=>{
         type = 'u';
 
-        bitsocket.crawlRecent(token, query,processFunc, ()=>{
+        bitsocket.crawlRecent(token, query,processFunc).then(()=>{
             type='r'
             if(onSyncFinish){
                 onSyncFinish()
             }
-            socket = bitsocket.connect(query, processFunc)
+            if(listenMode==true){
+                bitsocket.connect(query, processFunc)
+            }
         })
     })
+
+}
+
+
+
+
+exports.start = function (token, query, process, onSyncFinish) {
+    planarietteWithListenMode(token,query,process,onSyncFinish, true)
+    
+}
+
+exports.getAll = async function (token, query, process) {
+    return new Promise(resolve=>{
+        planarietteWithListenMode(token,query,process,()=>resolve(), false)
+    })
+    
+    
 }
 
 exports.stop = function(){
-    if(socket){
-        socket.close()
-        socket=null
-    }
+    bitsocket.close()
 }
