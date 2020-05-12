@@ -2,7 +2,6 @@ planariette = require('./index.js');
 bitsocket = require('bitsocket-connect')
 bitbus = require('run-bitbus')
 
-var token = 'eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxR1VlQnVFUEFSOTkxeGlFeW5SbmFjb1BZeTJSa0NZeGZ2IiwiaXNzdWVyIjoiZ2VuZXJpYy1iaXRhdXRoIn0.SURuOVZVejFJNWw4TXlRTk9HSiswNUFiemd1T0xvRTl2cTV0Nm9qVnVSejRNMExsb3YxT3pEaHVwZWNybk51allVT1R0L0FiRmdDN3MyUk4vbGJQN2dRPQ'
 paymails = ['jonathan.aird@gmail.com']
 var protocolPrefix = '14FLDQhDGmxKCsX79qEtMm36YcdUVyGQm5'
 
