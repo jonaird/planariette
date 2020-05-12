@@ -2,25 +2,39 @@ const bitbus = require('run-bitbus');
 const bitsocket = require('bitsocket-connect');
 
 
-function planarietteWithListenMode (token, query, process, onSyncFinish, listenMode) {
+async function planarietteWithListenMode(token, query, process, onSyncFinish, listenMode, useBOB) {
+    console.log(useBOB)
     var type = 'c';
     var processFunc;
-    var last25h = [];
+    var last6h = [];
     var now = new Date().getTime()
-    var hours25ago = now - 90000000
+    var hours6ago = now - 21600000
+    var hours5ago = now - 18000000
+    var newQuery = JSON.parse(JSON.stringify(query))
+    var usedFrom;
 
-    if (query.q.project) {
-        query.q.project['blk'] = 1
-        query.q.project['tx.h'] = 1
+
+    if (newQuery['q']['project']) {
+        newQuery['q']['project']['blk.t'] = 1,
+            newQuery['q']['project']['tx.h'] = 1
+        newQuery['q']['project']['timestamp'] = 1
+    }
+
+    if (newQuery.from) {
+        usedFrom = true
+        newQuery.q.find['blk.i'] = { $gt: newQuery.from }
     }
 
 
     function processWithType(tx) {
-        if (type == 'c' && tx.blk.t * 1000 > hours25ago) {
-            last25h.push(tx.tx.h)
-            process(tx,type)
+        console.log('tx')
+        if (type == 'c') {
+            if (tx.blk.t * 1000 > hours6ago) {
+                last6h.push(tx.tx.h)
+            }
+            process(tx, type)
         } else if (type == 'u') {
-            if (!last25h.includes(tx.tx.h)) {
+            if (!last6h.includes(tx.tx.h)) {
                 process(tx, type)
             }
         } else {
@@ -30,11 +44,13 @@ function planarietteWithListenMode (token, query, process, onSyncFinish, listenM
 
     async function processWithTypeAsync(tx) {
         return new Promise(async resolve => {
-            if (type == 'c' && tx.blk.t * 1000 > hours25ago) {
-                last25h.push(tx.tx.h)
-                await process(tx,type)
+            if (type == 'c') {
+                if (tx.blk.t * 1000 > hours6ago) {
+                    last6h.push(tx.tx.h)
+                }
+                await process(tx, type)
             } else if (type == 'u') {
-                if (!last25h.includes(tx.tx.h)) {
+                if (!last6h.includes(tx.tx.h)) {
                     await process(tx, type)
                 }
             } else {
@@ -46,39 +62,45 @@ function planarietteWithListenMode (token, query, process, onSyncFinish, listenM
     }
 
     process.constructor.name == 'AsyncFunction' ? processFunc = processWithTypeAsync : processFunc = processWithType;
-  
-    bitbus.run(token, query, processFunc).then(()=>{
-        type = 'u';
 
-        bitsocket.crawlRecent(token, query,processFunc).then(()=>{
-            type='r'
-            if(onSyncFinish){
-                onSyncFinish()
-            }
-            if(listenMode==true){
-                bitsocket.connect(query, processFunc)
-            }
-        })
+    await bitbus.run(token, newQuery, processFunc, useBOB ? 'https://bob.bitbus.network/block' : null)
+
+    type = 'u';
+    newQuery.q.find.timestamp = { $gt: hours5ago }
+    if (usedFrom) {
+        delete newQuery.q.find['blk.i']
+    }
+
+    await bitsocket.crawlRecent(token, newQuery, processFunc, useBOB ? 'https://bob.bitsocket.network/crawl' : null)
+
+    type = 'r'
+
+    if (onSyncFinish) {
+        onSyncFinish()
+    }
+    if (listenMode == true) {
+        bitsocket.connect(newQuery, processFunc, useBOB ? 'https://bob.bitsocket.network/s/' : null)
+    }
+
+}
+
+
+
+
+exports.start = function (token, query, process, onSyncFinish, useBOB) {
+    planarietteWithListenMode(token, query, process, onSyncFinish, true, useBOB)
+
+}
+
+exports.getAll = async function (token, query, process, useBOB) {
+    return new Promise(resolve => {
+        planarietteWithListenMode(token, query, process, () => resolve(), false, useBOB)
     })
 
+
 }
 
-
-
-
-exports.start = function (token, query, process, onSyncFinish) {
-    planarietteWithListenMode(token,query,process,onSyncFinish, true)
-    
-}
-
-exports.getAll = async function (token, query, process) {
-    return new Promise(resolve=>{
-        planarietteWithListenMode(token,query,process,()=>resolve(), false)
-    })
-    
-    
-}
-
-exports.stop = function(){
+exports.stop = function () {
     bitsocket.close()
 }
+

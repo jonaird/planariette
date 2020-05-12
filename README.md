@@ -9,13 +9,13 @@
 
 Planariette is a single function call that lets you syncronize with the blockchain then process new transactions in realtime.
 
-### start(token, query, process, (optional) onSyncFinish, (optional) listenMode);
+### start(token, query, process, (optional) onSyncFinish, useBOB);
 
 **token**: A Bitbus api token which you can get [here](https://token.planaria.network).  
 **query**: A [Bitquery](https://bitquery.planaria.network/#/?id=bitquery). "r" and BOB are not supported. If you are using "project" you must include "tx.h".   
 **process(tx, type)**: A processing function that processes each individual transaction in the order they appear on the blockchain. This function can be either synchronous or async but if async, be sure to return a promise that resolves when finished processing a transaction. Type is string either 'c','u', or 'r' for confirmed (mined), unconfirmed (mempool) or realtime transactions.   
 **onSyncFinish()**: A function that is called when Planariette has finished synching with the blockchain and starts listening for realtime transactions. It is not recommended to do heavy lifting in onSyncFinish unless it is done synchronously.  
-**listenMode**: Whether to listen for realtime transactions (defaults to true). If set to false, will only process confirmed and unconfirmed transactions
+**useBOB**: if set to true will use BOB instead of TXO
 
 example (gets weather data for New York, NY):
 ```
@@ -36,7 +36,7 @@ const query = {
 planariette.start(token, query,tx=>console.log(tx),()=>console.log('Swiched to listen mode.'));
 ```
 
-### async getAll(token, query, process);  
+### async getAll(token, query, process, useBOB);  
 getAll queries for all confirmed and unconfirmed transactions but doesn't start listening for realtime ones.
 
 and that's it! Yes, it's that simple. Now have some fun.
