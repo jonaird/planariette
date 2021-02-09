@@ -1,6 +1,6 @@
 {
   "name": "planariette",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "A lightweight planaria for Nodejs",
   "main": "index.js",
   "scripts": {

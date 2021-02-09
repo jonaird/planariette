@@ -79,6 +79,7 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
         onSyncFinish()
     }
     if (listenMode == true) {
+        delete newQuery.q.find.timestamp
         bitsocket.connect(newQuery, processFunc,null, useBOB ? 'https://bob.bitsocket.network/s/' : null)
     }
 
