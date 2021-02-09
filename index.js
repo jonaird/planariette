@@ -3,7 +3,7 @@ const bitsocket = require('bitsocket-connect');
 
 
 async function planarietteWithListenMode(token, query, process, onSyncFinish, listenMode, useBOB) {
-    console.log(useBOB)
+    
     var type = 'c';
     var processFunc;
     var last6h = [];
@@ -27,7 +27,7 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
 
 
     function processWithType(tx) {
-        console.log('tx')
+        
         if (type == 'c') {
             if (tx.blk.t * 1000 > hours6ago) {
                 last6h.push(tx.tx.h)
@@ -79,7 +79,7 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
         onSyncFinish()
     }
     if (listenMode == true) {
-        bitsocket.connect(newQuery, processFunc, useBOB ? 'https://bob.bitsocket.network/s/' : null)
+        bitsocket.connect(newQuery, processFunc,null, useBOB ? 'https://bob.bitsocket.network/s/' : null)
     }
 
 }
@@ -88,6 +88,7 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
 
 
 exports.start = function (token, query, process, onSyncFinish, useBOB) {
+    console.log(process)
     planarietteWithListenMode(token, query, process, onSyncFinish, true, useBOB)
 
 }

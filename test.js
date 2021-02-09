@@ -1,110 +1,26 @@
-planariette = require('./index.js');
-bitsocket = require('bitsocket-connect')
-bitbus = require('run-bitbus')
+p = require('./index.js')
+b = require('run-bitbus')
+s = require('bitsocket-connect')
 
-paymails = ['jonathan.aird@gmail.com']
-var protocolPrefix = '14FLDQhDGmxKCsX79qEtMm36YcdUVyGQm5'
-
-
-function findCorrectTape(tx) {
-  var correctTape;
-
-  for (var output of tx.out) {
-      for (var tape of output.tape) {
-          //making sure these are not null before checking if protocol prefix
-          if (tape[1] && tape[1].cell[0].s && tape[1].cell[0].s == protocolPrefix) {
-              correctTape = tape
-              break
-          }
-      }
-      if (correctTape) {
-          break
-      }
-
-  }
-
-  return correctTape
-}
-
-function serialize(tx) {
-
-  var tape = findCorrectTape(tx)
-  var name;
-  try {
-      var nameText = tape.cell[1].s
-      if (nameText.length <= 50) {
-          var publicKey = Buffer.from(tape.cell[3].b, 'base64').toString('hex')
-          var address = new bsv.PublicKey(publicKey).toAddress().toString()
-          name = {
-              name: nameText,
-              paymail: tape.cell[2].s,
-              publicKey,
-              address,
-              signature: tape.cell[4].s
-          }
-      }
-
-  } catch (err) {
-
-  }
-
-  return name
-}
-
-function verify(tx) {
-  return Message.verify(tx.name, tx.address, tx.signature);
+function process(tx, t) {
+    // console.log(tx)
+    if (t == 'u') {
+        console.log(tx)
+    } else if (t == 'r') {
+        console.log('success')
+    }
 }
 
 
 
-getNames = function (t, p) {
-  return new Promise(resolve => {
-      query = {
-          q: {
-              find: {
-                  
-                  $or: []
-              }
-          }
-      }
-
-      for (var paymail of paymails) {
-          query.q.find.$or.push({
-            'out.tape.cell.s': protocolPrefix,
-              'out.tape.cell.s': paymail
-          })
-      }
-      console.log(query)
-      var names = {}
-      var toReturn = []
-      function process(tx) {
-          console.log(tx)
-          name = serialize(tx)
-          if (name) {
-              names[tx.address] = name
-          }
-      }
-
-      function callback() {
-
-          keys = Object.keys(names)
-
-          keys.forEach(key => {
-              if (verify(names[key])) {
-                  toReturn[toReturn.length] = {
-                      paymail: names[key].paymail,
-                      name: names[key].name,
-                      publicKey: names[key].publicKey
-                  }
-              }
-          })
-          resolve(toReturn)
-
-      }
-      planariette.getAll(token, query, process, true).then(callback).catch(er=>console.log(er))
-  })
-
-
+var q = {
+    "q":
+    {
+        "find": {},
+        limit:1
+    }
 }
 
-getNames(token, paymails).then(names=>console.log(names))
+p.start(token, q, process,()=>'finished crawl', true)
+// b.run(token,q,tx=>console.log(tx),'https://bob.bitbus.network/block');
+// s.connect(q, process,null, 'https://bob.bitsocket.network/s/')
