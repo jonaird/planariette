@@ -1,7 +1,13 @@
 const bitbus = require('run-bitbus');
 const bitsocket = require('bitsocket-connect');
+const fetch = require('node-fetch');
 
-
+async function getBlockTime(height){
+    const url = "https://api.whatsonchain.com/v1/bsv/main/block/height/"+height;
+    const res = await fetch(url);
+    const json = await res.json();
+    return json.time*1000;
+}
 async function planarietteWithListenMode(token, query, process, onSyncFinish, listenMode, useBOB) {
     
     var type = 'c';
@@ -22,7 +28,11 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
 
     if (newQuery.from) {
         usedFrom = true
-        newQuery.q.find['blk.i'] = { $gt: newQuery.from }
+        const tmHeight = await getBlockTime(newQuery.from)
+        if(tmHeight<hours6ago)
+            newQuery.q.find['blk.i'] = { $gt: newQuery.from }
+        else
+            newQuery.q.find['blk.t'] = { $gt: hours6ago/1000 }
     }
 
 
@@ -32,7 +42,8 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
             if (tx.blk.t * 1000 > hours6ago) {
                 last6h.push(tx.tx.h)
             }
-            process(tx, type)
+            if(!newQuery.from||tx.blk.i>newQuery.from)
+                process(tx, type)
         } else if (type == 'u') {
             if (!last6h.includes(tx.tx.h)) {
                 process(tx, type)
@@ -48,7 +59,8 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
                 if (tx.blk.t * 1000 > hours6ago) {
                     last6h.push(tx.tx.h)
                 }
-                await process(tx, type)
+                if(!newQuery.from||tx.blk.i>newQuery.from)
+                    await process(tx, type)
             } else if (type == 'u') {
                 if (!last6h.includes(tx.tx.h)) {
                     await process(tx, type)
@@ -69,6 +81,7 @@ async function planarietteWithListenMode(token, query, process, onSyncFinish, li
     newQuery.q.find.timestamp = { $gt: hours5ago }
     if (usedFrom) {
         delete newQuery.q.find['blk.i']
+        delete newQuery.q.find['blk.t']
     }
 
     await bitsocket.crawlRecent(token, newQuery, processFunc, useBOB ? 'https://bob.bitsocket.network/crawl' : null)
